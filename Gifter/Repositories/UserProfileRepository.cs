@@ -161,16 +161,15 @@ namespace Gifter.Repositories
                                up.ImageUrl AS UserProfileImageUrl,
 
                                p.Id AS PostId, p.Title, p.Caption, p.DateCreated AS PostDateCreated,
-                               p.ImageUrl AS PostImageUrl, p.UserProfileId AS PostUserProfileId
+                               p.ImageUrl AS PostImageUrl, p.UserProfileId AS PostUserProfileId, 
 
-                               -- , c.Id AS CommentId, c.PostId, c.Message, c.UserProfileId AS CommentUserProfileId
+                               c.Id AS CommentId, c.PostId, c.Message, c.UserProfileId AS CommentUserProfileId
                           FROM UserProfile up
                                LEFT JOIN Post p ON up.Id = p.UserProfileId
-                               -- LEFT JOIN Comment c ON p.Id = c.PostId
+                               LEFT JOIN Comment c ON p.Id = c.PostId
                          WHERE up.Id = @Id";
 
                     DbUtils.AddParameter(cmd, "@Id", id);
-
                     var reader = cmd.ExecuteReader();
 
                     UserProfile userProfile = null;
@@ -186,42 +185,42 @@ namespace Gifter.Repositories
                                 DateCreated = DbUtils.GetDateTime(reader, "UserProfileDateCreated"),
                                 ImageUrl = DbUtils.GetString(reader, "UserProfileImageUrl"),
                                 Bio = DbUtils.GetString(reader, "Bio"),
-
                                 Posts = new List<Post>()
                             };
                         }
 
                         if (DbUtils.IsNotDbNull(reader, "PostId"))
                         {
-                            userProfile.Posts.Add(new Post()
-                            {
-                                Id = DbUtils.GetInt(reader, "PostId"),
-                                Title = DbUtils.GetString(reader, "Title"),
-                                Caption = DbUtils.GetString(reader, "Caption"),
-                                DateCreated = DbUtils.GetDateTime(reader, "PostDateCreated"),
-                                ImageUrl = DbUtils.GetString(reader, "PostImageUrl"),
-                                UserProfileId = DbUtils.GetInt(reader, "PostUserProfileId"),
+                            var postId = DbUtils.GetInt(reader, "PostId");
 
-                                //Comments = new List<Comment>()
-                            });
+                            if (!userProfile.Posts.Any(p => p.Id == postId))
+                            {
+                                userProfile.Posts.Add(new Post()
+                                {
+                                    Id = postId,
+                                    Title = DbUtils.GetString(reader, "Title"),
+                                    Caption = DbUtils.GetString(reader, "Caption"),
+                                    DateCreated = DbUtils.GetDateTime(reader, "PostDateCreated"),
+                                    ImageUrl = DbUtils.GetString(reader, "PostImageUrl"),
+                                    UserProfileId = DbUtils.GetInt(reader, "PostUserProfileId"),
+                                    Comments = new List<Comment>()
+                                });
+                            }
                         }
 
-                        //if (DbUtils.IsNotDbNull(reader, "CommentId"))
-                        //{
-                        //    userProfile.Posts.ForEach(post =>
-                        //    {
-                        //        if (DbUtils.IsNotDbNull(reader, "CommentId"))
-                        //        {
-                        //            post.Comments.Add(new Comment()
-                        //            {
-                        //                Id = DbUtils.GetInt(reader, "CommentId"),
-                        //                Message = DbUtils.GetString(reader, "Message"),
-                        //                PostId = DbUtils.GetInt(reader, "PostId"),
-                        //                UserProfileId = DbUtils.GetInt(reader, "CommentUserProfileId")
-                        //            });
-                        //        }
-                        //    });                            
-                        //}
+                        if (DbUtils.IsNotDbNull(reader, "CommentId"))
+                        {
+                            var postId = DbUtils.GetInt(reader, "PostId");
+                            var post = userProfile.Posts.First(p => p.Id == postId);
+
+                            post.Comments.Add(new Comment()
+                            {
+                                Id = DbUtils.GetInt(reader, "CommentId"),
+                                Message = DbUtils.GetString(reader, "Message"),
+                                PostId = post.Id,
+                                UserProfileId = DbUtils.GetInt(reader, "CommentUserProfileId")
+                            });
+                        }
                     }
 
                     reader.Close();
