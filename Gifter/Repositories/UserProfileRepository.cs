@@ -222,7 +222,7 @@ namespace Gifter.Repositories
                             });
                         }
                     }
-
+                    
                     reader.Close();
 
                     return userProfile;
