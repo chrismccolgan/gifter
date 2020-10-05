@@ -163,7 +163,7 @@ namespace Gifter.Repositories
                                p.Id AS PostId, p.Title, p.Caption, p.DateCreated AS PostDateCreated,
                                p.ImageUrl AS PostImageUrl, p.UserProfileId AS PostUserProfileId, 
 
-                               c.Id AS CommentId, c.PostId, c.Message, c.UserProfileId AS CommentUserProfileId
+                               c.Id AS CommentId, c.PostId AS CommentPostId, c.Message, c.UserProfileId AS CommentUserProfileId
                           FROM UserProfile up
                                LEFT JOIN Post p ON up.Id = p.UserProfileId
                                LEFT JOIN Comment c ON p.Id = c.PostId

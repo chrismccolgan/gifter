@@ -71,9 +71,12 @@ namespace Gifter.Repositories
                                p.ImageUrl AS PostImageUrl, p.UserProfileId,
 
                                up.Name, up.Bio, up.Email, p.DateCreated AS UserProfileDateCreated, 
-                               up.ImageUrl AS UserProfileImageUrl
+                               up.ImageUrl AS UserProfileImageUrl,
+
+                               c.Id AS CommentId, c.Message, c.UserProfileId AS CommentUserProfileId
                           FROM Post p 
                                LEFT JOIN UserProfile up ON p.UserProfileId = up.id
+                               LEFT JOIN Comment c ON p.Id = c.PostId
                          WHERE p.Id = @Id";
 
                     DbUtils.AddParameter(cmd, "@Id", id);
@@ -81,25 +84,40 @@ namespace Gifter.Repositories
                     var reader = cmd.ExecuteReader();
 
                     Post post = null;
-                    if (reader.Read())
+                    while (reader.Read())
                     {
-                        post = new Post()
+                        if (post == null)
                         {
-                            Id = id,
-                            Title = DbUtils.GetString(reader, "Title"),
-                            Caption = DbUtils.GetString(reader, "Caption"),
-                            DateCreated = DbUtils.GetDateTime(reader, "PostDateCreated"),
-                            ImageUrl = DbUtils.GetString(reader, "PostImageUrl"),
-                            UserProfileId = DbUtils.GetInt(reader, "UserProfileId"),
-                            UserProfile = new UserProfile()
+                            post = new Post()
                             {
-                                Id = DbUtils.GetInt(reader, "UserProfileId"),
-                                Name = DbUtils.GetString(reader, "Name"),
-                                Email = DbUtils.GetString(reader, "Email"),
-                                DateCreated = DbUtils.GetDateTime(reader, "UserProfileDateCreated"),
-                                ImageUrl = DbUtils.GetString(reader, "UserProfileImageUrl"),
-                            }
-                        };
+                                Id = id,
+                                Title = DbUtils.GetString(reader, "Title"),
+                                Caption = DbUtils.GetString(reader, "Caption"),
+                                DateCreated = DbUtils.GetDateTime(reader, "PostDateCreated"),
+                                ImageUrl = DbUtils.GetString(reader, "PostImageUrl"),
+                                UserProfileId = DbUtils.GetInt(reader, "UserProfileId"),
+                                Comments = new List<Comment>(),
+                                UserProfile = new UserProfile()
+                                {
+                                    Id = DbUtils.GetInt(reader, "UserProfileId"),
+                                    Name = DbUtils.GetString(reader, "Name"),
+                                    Email = DbUtils.GetString(reader, "Email"),
+                                    DateCreated = DbUtils.GetDateTime(reader, "UserProfileDateCreated"),
+                                    ImageUrl = DbUtils.GetString(reader, "UserProfileImageUrl"),
+                                }
+                            };
+                        }
+
+                        if (DbUtils.IsNotDbNull(reader, "CommentId"))
+                        {
+                            post.Comments.Add(new Comment()
+                            {
+                                Id = DbUtils.GetInt(reader, "CommentId"),
+                                Message = DbUtils.GetString(reader, "Message"),
+                                PostId = post.Id,
+                                UserProfileId = DbUtils.GetInt(reader, "CommentUserProfileId")
+                            });
+                        }
                     }
 
                     reader.Close();
@@ -123,7 +141,7 @@ namespace Gifter.Repositories
 
                     DbUtils.AddParameter(cmd, "@Title", post.Title);
                     DbUtils.AddParameter(cmd, "@Caption", post.Caption);
-                    DbUtils.AddParameter(cmd, "@DateCreated", post.DateCreated);
+                    DbUtils.AddParameter(cmd, "@DateCreated", DateTime.Now);
                     DbUtils.AddParameter(cmd, "@ImageUrl", post.ImageUrl);
                     DbUtils.AddParameter(cmd, "@UserProfileId", post.UserProfileId);
 
